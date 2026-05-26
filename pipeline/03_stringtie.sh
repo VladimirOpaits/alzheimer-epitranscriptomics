@@ -1,21 +1,24 @@
 #!/bin/bash
 set -e
-DATA_DIR="/home/vlad/data"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/00_config.sh"
 
-mkdir -p $DATA_DIR/stringtie/{alzheimer,alzheimer2,healthy,healthy2}
+for sample in "${SAMPLES[@]}"; do
+  mkdir -p "$DATA_DIR/stringtie/${sample}"
+done
 
-for sample in alzheimer alzheimer2 healthy healthy2; do
-  echo "Processing $sample..."
-  
-  stringtie $DATA_DIR/${sample}/bam/*.bam \
+for sample in "${SAMPLES[@]}"; do
+  echo "StringTie: $sample..."
+
+  stringtie "$DATA_DIR/${sample}/bam/${BAM_FILE[$sample]}" \
     -L \
-    -G $DATA_DIR/reference/gencode.v44.annotation.gtf \
-    -o $DATA_DIR/stringtie/${sample}/transcripts.gtf \
-    -p 8
+    -G "$DATA_DIR/reference/gencode.v44.annotation.gtf" \
+    -o "$DATA_DIR/stringtie/${sample}/transcripts.gtf" \
+    -p "$THREADS"
 
   grep -v "_random\|_alt\|_fix\|chrUn" \
-    $DATA_DIR/stringtie/${sample}/transcripts.gtf \
-    > $DATA_DIR/stringtie/${sample}/transcripts_filtered.gtf
+    "$DATA_DIR/stringtie/${sample}/transcripts.gtf" \
+    > "$DATA_DIR/stringtie/${sample}/transcripts_filtered.gtf"
 
   echo "$sample done"
 done

@@ -13,15 +13,16 @@ Comparative analysis of long-read RNA-seq (Nanopore Direct RNA) from human dorso
 
 ## GCP Infrastructure
 - VM: `instance-20260524-113650`, zone `us-central1-a`, e2-standard-8, 200GB disk
-- SSH: `gcloud compute ssh instance-20260524-113650 --zone=us-central1-a`
-- Switch user: `sudo su - g663vova` (data lives in /home/g663vova/data/)
+- SSH: `gcloud compute ssh instance-20260524-113650 --zone=us-central1-a` (logs in as `vlad`)
 - Stop VM: `gcloud compute instances stop instance-20260524-113650 --zone=us-central1-a`
 - Start VM: `gcloud compute instances start instance-20260524-113650 --zone=us-central1-a`
 - GCS bucket: `gs://alzheimer-lrseq`
+- Repo cloned on VM at: `/home/vlad/alzheimer-epitranscriptomics/`
 
-## Data on VM (/home/g663vova/data/)
+## Data on VM (/home/vlad/data/data/)
+Note: actual data root is `/home/vlad/data/data/` (nested path).
 ```
-data/
+data/data/
   alzheimer/bam/ENCFF318LAS.bam        # annotated BAM, GRCh38
   alzheimer/bed/                        # RNA modifications (m6A, m5C, pseudouridine, inosine, Nm)
   alzheimer2/bam/ENCFF848JRR.bam
@@ -31,18 +32,20 @@ data/
   healthy2/bam/ENCFF222AEA.bam
   healthy2/bed/
   reference/
-    GRCh38.primary_assembly.genome.fa   # bgzip format
-    gencode.v44.annotation.gtf          # uncompressed
+    GRCh38.primary_assembly.genome.fa
+    gencode.v44.annotation.gtf
   stringtie/
     alzheimer/transcripts_filtered.gtf
     alzheimer2/transcripts_filtered.gtf
     healthy/transcripts_filtered.gtf
     healthy2/transcripts_filtered.gtf
+    merged.gtf                           # merged transcriptome (all 4 samples)
   sqanti/
     alzheimer/alzheimer_classification.txt   # MAIN FILE FOR ML
     alzheimer2/alzheimer2_classification.txt
     healthy/healthy_classification.txt
     healthy2/healthy2_classification.txt
+  bambu_results/                         # output from Bambu (alternative quantification)
 ```
 
 ## Pipeline (conda envs)

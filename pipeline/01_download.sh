@@ -1,59 +1,39 @@
 #!/bin/bash
 set -e
-HOME_DIR="/home/vlad"
-DATA_DIR="$HOME_DIR/data"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/00_config.sh"
 
-mkdir -p $DATA_DIR/{alzheimer,alzheimer2,healthy,healthy2}/{bam,bed}
-mkdir -p $DATA_DIR/reference
+for sample in "${SAMPLES[@]}"; do
+  mkdir -p "$DATA_DIR/${sample}/bam"
+  mkdir -p "$DATA_DIR/${sample}/bed"
+done
+mkdir -p "$DATA_DIR/reference"
 
 # BAM files
-curl -o $DATA_DIR/alzheimer/bam/ENCFF318LAS.bam \
-  -L https://www.encodeproject.org/files/ENCFF318LAS/@@download/ENCFF318LAS.bam
-
-curl -o $DATA_DIR/alzheimer2/bam/ENCFF848JRR.bam \
-  -L https://www.encodeproject.org/files/ENCFF848JRR/@@download/ENCFF848JRR.bam
-
-curl -o $DATA_DIR/healthy/bam/ENCFF609UIN.bam \
-  -L https://www.encodeproject.org/files/ENCFF609UIN/@@download/ENCFF609UIN.bam
-
-curl -o $DATA_DIR/healthy2/bam/ENCFF222AEA.bam \
-  -L https://www.encodeproject.org/files/ENCFF222AEA/@@download/ENCFF222AEA.bam
-
-# Alzheimer bed files
-for id in ENCFF648EJN ENCFF271IEJ ENCFF618GCJ ENCFF967FYK ENCFF151RGT \
-          ENCFF676FXA ENCFF560YMC ENCFF261JSC ENCFF625SGQ ENCFF399PRQ; do
-  curl -o $DATA_DIR/alzheimer/bed/${id}.bed.gz \
-    -L https://www.encodeproject.org/files/${id}/@@download/${id}.bed.gz
+for sample in "${SAMPLES[@]}"; do
+  bam="${BAM_FILE[$sample]}"
+  echo "Downloading BAM for $sample ($bam)..."
+  curl -o "$DATA_DIR/${sample}/bam/${bam}" \
+    -L "https://www.encodeproject.org/files/${bam%.*}/@@download/${bam}"
 done
 
-# Alzheimer2 bed files
-for id in ENCFF770NES ENCFF317NKY ENCFF685WDQ ENCFF650ZST ENCFF582HOV \
-          ENCFF037VCI ENCFF593NRV ENCFF424TSR ENCFF738FGG ENCFF673LOU; do
-  curl -o $DATA_DIR/alzheimer2/bed/${id}.bed.gz \
-    -L https://www.encodeproject.org/files/${id}/@@download/${id}.bed.gz
-done
-
-# Healthy bed files
-for id in ENCFF021KEM ENCFF189ISL ENCFF748LCT ENCFF599CVZ ENCFF424BNS \
-          ENCFF896MCF ENCFF302AZY ENCFF562OIB ENCFF568NOR ENCFF819BCT; do
-  curl -o $DATA_DIR/healthy/bed/${id}.bed.gz \
-    -L https://www.encodeproject.org/files/${id}/@@download/${id}.bed.gz
-done
-
-# Healthy2 bed files
-for id in ENCFF375SLZ ENCFF906NNT ENCFF262WOH ENCFF945TFF ENCFF407HCD \
-          ENCFF949LVE ENCFF695BNP ENCFF200IWT ENCFF653XTI ENCFF769OLC; do
-  curl -o $DATA_DIR/healthy2/bed/${id}.bed.gz \
-    -L https://www.encodeproject.org/files/${id}/@@download/${id}.bed.gz
+# BED modification files
+for sample in "${SAMPLES[@]}"; do
+  echo "Downloading BED files for $sample..."
+  for id in ${BED_IDS[$sample]}; do
+    curl -o "$DATA_DIR/${sample}/bed/${id}.bed.gz" \
+      -L "https://www.encodeproject.org/files/${id}/@@download/${id}.bed.gz"
+  done
 done
 
 # Reference genome and annotation
-wget -P $DATA_DIR/reference/ \
+echo "Downloading reference genome and annotation..."
+wget -P "$DATA_DIR/reference/" \
   https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/GRCh38.primary_assembly.genome.fa.gz
-wget -P $DATA_DIR/reference/ \
+wget -P "$DATA_DIR/reference/" \
   https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz
 
-gunzip $DATA_DIR/reference/gencode.v44.annotation.gtf.gz
-gunzip $DATA_DIR/reference/GRCh38.primary_assembly.genome.fa.gz
+gunzip "$DATA_DIR/reference/gencode.v44.annotation.gtf.gz"
+gunzip "$DATA_DIR/reference/GRCh38.primary_assembly.genome.fa.gz"
 
 echo "Download complete"
