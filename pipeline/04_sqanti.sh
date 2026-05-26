@@ -11,7 +11,7 @@ for sample in "${SAMPLES[@]}"; do
   echo "SQANTI3: $sample..."
 
   sqanti3_qc.py \
-    --isoforms "$DATA_DIR/stringtie/${sample}/transcripts_filtered.gtf" \
+    --isoforms "$DATA_DIR/stringtie/${sample}/transcripts_requantified.gtf" \
     --refGTF    "$DATA_DIR/reference/gencode.v44.annotation.gtf" \
     --refFasta  "$DATA_DIR/reference/GRCh38.primary_assembly.genome.fa" \
     --dir       "$DATA_DIR/sqanti/${sample}" \
