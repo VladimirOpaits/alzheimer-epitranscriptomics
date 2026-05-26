@@ -1,5 +1,7 @@
 # Alzheimer Epitranscriptomics — Project Context
 
+NO COMMENTS IN CODE OR SCRIPTS
+
 ## What this project is
 Comparative analysis of long-read RNA-seq (Nanopore Direct RNA) from human dorsolateral prefrontal cortex. Goal: find isoform-level and RNA modification differences between Alzheimer's disease and healthy aging brain.
 
@@ -19,10 +21,10 @@ Comparative analysis of long-read RNA-seq (Nanopore Direct RNA) from human dorso
 - GCS bucket: `gs://alzheimer-lrseq`
 - Repo cloned on VM at: `/home/vlad/alzheimer-epitranscriptomics/`
 
-## Data on VM (/home/vlad/data/data/)
-Note: actual data root is `/home/vlad/data/data/` (nested path).
+## Data on VM (/home/g663vova/data/)
+Note: pipeline scripts run as user `vlad` but data lives in `/home/g663vova/data/`.
 ```
-data/data/
+data/
   alzheimer/bam/ENCFF318LAS.bam        # annotated BAM, GRCh38
   alzheimer/bed/                        # RNA modifications (m6A, m5C, pseudouridine, inosine, Nm)
   alzheimer2/bam/ENCFF848JRR.bam
