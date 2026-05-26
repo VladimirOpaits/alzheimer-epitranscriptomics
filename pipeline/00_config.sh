@@ -2,8 +2,8 @@
 # Shared configuration — sourced by all pipeline scripts.
 # Override DATA_DIR or BUCKET via environment before sourcing if needed.
 
-# On the VM data lives at ~/data/data (nested); override via env if different.
-DATA_DIR="${DATA_DIR:-$HOME/data/data}"
+# On the VM data lives at /home/g663vova/data (accessed by user vlad).
+DATA_DIR="${DATA_DIR:-/home/g663vova/data}"
 BUCKET="${BUCKET:-gs://alzheimer-lrseq}"
 THREADS="${THREADS:-8}"
 
