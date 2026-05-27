@@ -37,15 +37,16 @@ mod_type_map <- c(
 message("Loading SQANTI files...")
 
 sqanti_paths <- c(
-  alzheimer  = file.path(BASE, "sqanti/sqanti/alzheimer/alzheimer_classification.txt"),
-  alzheimer2 = file.path(BASE, "sqanti/sqanti/alzheimer2/alzheimer2_classification.txt"),
-  healthy    = file.path(BASE, "sqanti/sqanti/healthy/healthy_classification.txt"),
-  healthy2   = file.path(BASE, "sqanti/sqanti/healthy2/healthy2_classification.txt")
+  alzheimer  = file.path(BASE, "sqanti/alzheimer/alzheimer_classification.txt"),
+  alzheimer2 = file.path(BASE, "sqanti/alzheimer2/alzheimer2_classification.txt"),
+  healthy    = file.path(BASE, "sqanti/healthy/healthy_classification.txt"),
+  healthy2   = file.path(BASE, "sqanti/healthy2/healthy2_classification.txt")
 )
 
 sqanti_all <- map_dfr(names(sqanti_paths), function(sid) {
   message("  ", sid)
   fread(sqanti_paths[sid], na.strings = c("NA", ".", "")) |>
+    as_tibble() |>
     mutate(sample_id = sid)
 }) |>
   left_join(samples, by = "sample_id") |>
@@ -69,11 +70,14 @@ bed_all <- map_dfr(samples$sample_id, function(sid) {
   files <- list.files(dir, pattern = "\\.bed\\.gz$", full.names = TRUE)
   message("  ", sid, ": ", length(files), " files")
 
+  if (length(files) == 0) stop("No BED files found for: ", sid)
+
   map_dfr(files, function(f) {
     dt <- fread(cmd = paste("zcat", shQuote(f)), header = FALSE, fill = TRUE)
     n  <- min(ncol(dt), length(bed_cols))
     setnames(dt, seq_len(n), bed_cols[seq_len(n)])
     dt |>
+      as_tibble() |>
       select(chrom, start, end, mod_code, mod_freq, coverage, strand) |>
       mutate(
         sample_id = sid,

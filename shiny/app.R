@@ -4,14 +4,12 @@ library(tidyverse)
 library(plotly)
 library(DT)
 
-# Load preprocessed data (run data_prep.R first)
 sqanti     <- readRDS("data/sqanti_all.rds")
 bed_summ   <- readRDS("data/bed_summary.rds")
 bed_m6a    <- readRDS("data/bed_m6a.rds")
 
 ad_genes <- c("APOE", "APP", "MAPT", "TREM2", "PSEN1", "PSEN2", "BIN1", "CLU")
 
-# Colour palette: consistent condition colours across all plots
 cond_pal <- c(Healthy = "#2196F3", Alzheimer = "#E53935")
 
 sample_labels <- sqanti |>
@@ -19,13 +17,11 @@ sample_labels <- sqanti |>
   mutate(label = paste0(condition, " (", age, ")")) |>
   arrange(condition, age)
 
-# ── UI ────────────────────────────────────────────────────────────────────────
 ui <- page_navbar(
   title = "Alzheimer Epitranscriptomics",
   theme = bs_theme(bootswatch = "flatly", primary = "#2c3e50"),
   fillable = FALSE,
 
-  # ── Tab 1: Overview ─────────────────────────────────────────────────────────
   nav_panel("Overview",
     layout_columns(
       col_widths = 12,
@@ -54,7 +50,6 @@ ui <- page_navbar(
     )
   ),
 
-  # ── Tab 2: Alzheimer Genes ──────────────────────────────────────────────────
   nav_panel("Alzheimer Genes",
     layout_sidebar(
       sidebar = sidebar(
@@ -94,7 +89,6 @@ ui <- page_navbar(
     )
   ),
 
-  # ── Tab 3: RNA Modifications ────────────────────────────────────────────────
   nav_panel("RNA Modifications",
     layout_columns(
       col_widths = c(7, 5),
@@ -121,10 +115,8 @@ ui <- page_navbar(
   )
 )
 
-# ── Server ────────────────────────────────────────────────────────────────────
 server <- function(input, output, session) {
 
-  # Populate gene search with gene_name + ENSEMBL IDs
   all_gene_names <- sort(unique(sqanti$gene_name))
   updateSelectizeInput(session, "gene_sel",
     choices  = all_gene_names,
@@ -156,13 +148,15 @@ server <- function(input, output, session) {
   })
 
   output$len_violin <- renderPlotly({
-    plot_ly(sqanti, x = ~condition, y = ~length,
+    plot_ly(sqanti, x = ~condition, y = ~log10(length),
             color = ~condition, colors = cond_pal,
             type = "violin",
             box = list(visible = TRUE),
             meanline = list(visible = TRUE)) |>
       layout(xaxis = list(title = ""),
-             yaxis = list(title = "Transcript length (bp)", type = "log"),
+             yaxis = list(title = "Transcript length (bp)",
+                          tickvals = c(2, 3, 4),
+                          ticktext = c("100", "1k", "10k")),
              showlegend = FALSE)
   })
 
@@ -194,7 +188,6 @@ server <- function(input, output, session) {
       datatable(rownames = FALSE, options = list(dom = "t", pageLength = 10))
   })
 
-  # ── Alzheimer Genes ─────────────────────────────────────────────────────────
   gene_data <- reactive({
     req(input$gene_sel)
     sqanti |>
@@ -255,7 +248,6 @@ server <- function(input, output, session) {
       )
   })
 
-  # ── RNA Modifications ────────────────────────────────────────────────────────
   output$mod_bar <- renderPlotly({
     df <- bed_summ |>
       mutate(label = paste0(condition, " (", age, ")"))

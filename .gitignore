@@ -5,3 +5,4 @@ refAnnotation_*.genePred
 
 venv
 sshcloudmain
+.data
