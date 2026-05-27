@@ -121,3 +121,4 @@ Repo: `VladimirOpaits/alzheimer-epitranscriptomics`
 - [ ] Bayesian model with Alzheimer's gene priors
 - [ ] Consider rerunning SQANTI with --include_ORF and Illumina short reads for TSS
 - [ ] Consider Nextflow pipeline when analysis is stable
+- [ ] Fix rel_pos calculation in data_treatment.ipynb: currently divides genomic distance by transcript length — need to convert genomic coords to transcriptomic coords using exon structure from exons_by_sample GTF

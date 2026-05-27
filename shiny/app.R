@@ -3,12 +3,27 @@ library(bslib)
 library(tidyverse)
 library(plotly)
 library(DT)
+library(arrow)
 
 sqanti     <- readRDS("data/sqanti_all.rds")
 bed_summ   <- readRDS("data/bed_summary.rds")
 bed_m6a    <- readRDS("data/bed_m6a.rds")
 
 ad_genes <- c("APOE", "APP", "MAPT", "TREM2", "PSEN1", "PSEN2", "BIN1", "CLU")
+
+ad_gene_map <- c(
+  ENSG00000130203 = "APOE",  ENSG00000142192 = "APP",
+  ENSG00000186868 = "MAPT",  ENSG00000095970 = "TREM2",
+  ENSG00000080815 = "PSEN1", ENSG00000164690 = "PSEN2",
+  ENSG00000136717 = "BIN1",  ENSG00000120885 = "CLU"
+)
+
+ml <- read_parquet("../data/alzheimer-lrseq/ml_dataset.parquet") |>
+  mutate(
+    ensembl_base = str_remove(associated_gene, "\\.\\d+$"),
+    gene_name    = ad_gene_map[ensembl_base],
+    condition    = factor(condition, levels = c("Healthy", "Alzheimer"))
+  )
 
 cond_pal <- c(Healthy = "#2196F3", Alzheimer = "#E53935")
 
@@ -112,6 +127,41 @@ ui <- page_navbar(
         plotlyOutput("mod_freq_bar", height = "320px")
       )
     )
+  ),
+
+  nav_panel("Transcript Modifications",
+    layout_sidebar(
+      sidebar = sidebar(
+        width = 260,
+        selectInput("mod_gene_sel", "AD Gene",
+          choices  = ad_genes,
+          selected = "APOE"
+        ),
+        selectInput("mod_type_sel", "Modification type",
+          choices  = c("m6A", "m5C", "Pseudouridine", "Inosine", "Nm"),
+          selected = "m6A"
+        ),
+        checkboxGroupInput("mod_cat_filter", "Structural categories",
+          choices  = c("full-splice_match", "novel_in_catalog", "novel_not_in_catalog"),
+          selected = c("full-splice_match", "novel_in_catalog", "novel_not_in_catalog")
+        )
+      ),
+      layout_columns(
+        col_widths = c(6, 6),
+        card(
+          card_header("Modification frequency vs transcript position"),
+          plotlyOutput("mod_scatter", height = "360px")
+        ),
+        card(
+          card_header("Modification by structural category"),
+          plotlyOutput("mod_violin", height = "360px")
+        )
+      ),
+      card(
+        card_header("AD genes — mean modification frequency"),
+        plotlyOutput("mod_heatmap", height = "380px")
+      )
+    )
   )
 )
 
@@ -124,7 +174,6 @@ server <- function(input, output, session) {
     server   = TRUE
   )
 
-  # ── Overview ────────────────────────────────────────────────────────────────
   output$cat_bar <- renderPlotly({
     df <- sqanti |>
       mutate(cat_group = case_when(
@@ -216,11 +265,11 @@ server <- function(input, output, session) {
     plot_ly(df, x = ~label, y = ~n, color = ~cat_group,
             type = "bar",
             colors = c(FSM="#1a237e", ISM="#7986CB", NIC="#81C784",
-                       NNC="#FFB74D", Other="#B0BEC5")) |>
+                      NNC="#FFB74D", Other="#B0BEC5")) |>
       layout(barmode = "stack",
-             title = input$gene_sel,
-             xaxis = list(title = ""),
-             yaxis = list(title = "# isoforms"))
+            title = input$gene_sel,
+            xaxis = list(title = ""),
+            yaxis = list(title = "# isoforms"))
   })
 
   output$gene_expr <- renderPlotly({
@@ -231,15 +280,15 @@ server <- function(input, output, session) {
     plot_ly(df, x = ~label, y = ~iso_exp, color = ~condition, colors = cond_pal,
             type = "box", boxpoints = "all", jitter = 0.3, pointpos = 0) |>
       layout(xaxis = list(title = ""),
-             yaxis = list(title = "iso_exp (TPM)", type = "log"),
-             showlegend = FALSE)
+            yaxis = list(title = "iso_exp (TPM)", type = "log"),
+            showlegend = FALSE)
   })
 
   output$gene_tbl <- renderDT({
     gene_data() |>
       select(isoform, sample_id, condition, cat_group,
-             associated_transcript, length, exons,
-             iso_exp, gene_exp, diff_to_TSS, diff_to_TTS) |>
+            associated_transcript, length, exons,
+            iso_exp, gene_exp, diff_to_TSS, diff_to_TTS) |>
       arrange(condition, sample_id) |>
       datatable(
         rownames = FALSE,
@@ -255,11 +304,11 @@ server <- function(input, output, session) {
     plot_ly(df, x = ~label, y = ~n_sites, color = ~mod_type,
             type = "bar",
             colors = c(m6A="#E53935", m5C="#FB8C00", Pseudouridine="#8E24AA",
-                       Inosine="#039BE5", Nm="#43A047")) |>
+                      Inosine="#039BE5", Nm="#43A047")) |>
       layout(barmode = "group",
-             xaxis = list(title = ""),
-             yaxis = list(title = "# modification sites"),
-             legend = list(title = list(text = "Type")))
+            xaxis = list(title = ""),
+            yaxis = list(title = "# modification sites"),
+            legend = list(title = list(text = "Type")))
   })
 
   output$mod_tbl <- renderDT({
@@ -276,18 +325,43 @@ server <- function(input, output, session) {
     plot_ly(bed_m6a, x = ~mod_freq, color = ~condition, colors = cond_pal,
             type = "histogram", nbinsx = 50, alpha = 0.7) |>
       layout(barmode  = "overlay",
-             xaxis    = list(title = "m6A frequency (%)"),
-             yaxis    = list(title = "# sites"),
-             bargap   = 0.05)
+            xaxis    = list(title = "m6A frequency (%)"),
+            yaxis    = list(title = "# sites"),
+            bargap   = 0.05)
   })
 
   output$mod_freq_bar <- renderPlotly({
     plot_ly(bed_summ, x = ~mod_type, y = ~mean_freq, color = ~condition,
             colors = cond_pal, type = "bar") |>
       layout(barmode = "group",
-             xaxis   = list(title = ""),
-             yaxis   = list(title = "Mean modification frequency (%)"))
+            xaxis   = list(title = ""),
+            yaxis   = list(title = "Mean modification frequency (%)"))
   })
+
+  output$mod_scatter <- renderPlotly({
+    freq_col = paste0(input$mod_type_sel, "_freq")
+    pos_col = paste0(input$mod_type_sel, "_mean_pos")
+    n_col = paste0(input$mod_type_sel, "_n_sites")
+
+    df = ml |>
+      filter(gene_name == input$mod_gene_sel, .data[[freq_col]] > 0)
+
+    plot_ly(df,
+    x = ~.data[[freq_col]],
+    y = ~.data[[pos_col]],
+    color = ~condition, colors = cond_pal,
+    size = ~.data[[n_col]], sizes = c(4, 30),
+    type = "scatter", mode = "markers",
+    text = ~paste0(transcript_id, "<br>", structural_category),
+    hoverinfo = "text+x+y"
+    ) |> 
+    layout(
+      xaxis = list(title = paste(input$mod_type_sel, "frequency (%%)")),
+      yaxis = list(title = "Mean position (0 = 5', 1 = 3')")
+    )
+  })
+
+
 }
 
 shinyApp(ui, server)
