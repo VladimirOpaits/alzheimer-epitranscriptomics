@@ -162,6 +162,16 @@ ui <- page_navbar(
         plotlyOutput("mod_heatmap", height = "380px")
       )
     )
+  ),
+
+  nav_panel("3d graphic",
+    layout_columns(
+      col_width = 12,
+      card(
+        card_header("Transcript PCA - structure and modifications"),
+        plotlyOutput("pca_3d", height = "600px")
+      )
+    )
   )
 )
 
@@ -361,6 +371,46 @@ server <- function(input, output, session) {
     )
   })
 
+
+  output$pca_3d <- renderPlotly({
+    pca_features <- c("length", "exons",
+                      "m6A_freq", "m5C_freq", "Pseudouridine_freq",
+                      "Inosine_freq", "Nm_freq", "m6A_mean_pos",
+                      "m6A_n_sites")
+
+    df <- ml |>
+      filter(rowSums(select(ml, m6A_freq, m5C_freq, Pseudouridine_freq,
+                                Inosine_freq, Nm_freq)) > 0) |>
+      select(all_of(pca_features), condition, structural_category) |>
+      drop_na()
+
+    pca_mat <- df |> select(all_of(pca_features))
+    good_cols <- sapply(pca_mat, function(x) {
+      v <- var(x, na.rm = TRUE)
+      !is.na(v) && v > 0
+    })
+    pca_mat <- pca_mat[, good_cols]
+
+    pca_result <- prcomp(pca_mat, scale. = TRUE)
+
+    coords <- as.data.frame(pca_result$x[, 1:3])
+    coords$condition <- df$condition
+    coords$structural_category <- df$structural_category
+
+    var_explained <- round(summary(pca_result)$importance[2, 1:3] * 100, 1)
+
+    plot_ly(coords,
+            x = ~PC1, y = ~PC2, z = ~PC3,
+            color = ~condition, colors = cond_pal,
+            symbol = ~structural_category,
+            type = "scatter3d", mode = "markers",
+            marker = list(size = 3, opacity = 0.6)) |>
+      layout(scene = list(
+        xaxis = list(title = paste0("PC1 (", var_explained[1], "%)")),
+        yaxis = list(title = paste0("PC2 (", var_explained[2], "%)")),
+        zaxis = list(title = paste0("PC3 (", var_explained[3], "%)"))
+      ))
+  })
 
 }
 
